@@ -1,52 +1,64 @@
 import json
 from conexao import conectar, executar
 
-def carregar_inventario(caminho="inventario.json"):
-    with open(caminho, "r", encoding="utf-8") as f:
-        return json.load(f)
 
-def aplicar_configuracao(cliente, comandos_config):
-    historico_sucesso = []
-    for cmd in comandos_config:
-        codigo, saida, erro = executar(cliente, cmd)
-        if codigo == 0:
-            historico_sucesso.append(cmd)
-        else:
-            return False, cmd, erro, historico_sucesso
-    return True, None, None, historico_sucesso
+def aplicar_configuracao_com_rollback(dispositivo: dict) -> bool:
+    """Aplica a configuração no dispositivo. Se falhar, restaura o backup."""
+    nome = dispositivo.get("nome", "Desconhecido")
+    host = dispositivo.get("host")
+    usuario = dispositivo.get("usuario")
+
+    arquivo_alvo = f"/tmp/resolv_test_{usuario}.conf"
+    arquivo_backup = f"/tmp/resolv_test_{usuario}.conf.bak"
+
+    print(f"\n[*] Processando {nome} ({host})...")
+
+    try:
+        # 1. Estabelece a conexão usando a função do conexao.py
+        cliente = conectar(dispositivo)
+
+        # 2. Criar backup se o arquivo original já existir
+        cmd_backup = f"cp {arquivo_alvo} {arquivo_backup} 2>/dev/null || true"
+        executar(cliente, cmd_backup)
+        print(f"  [+] Backup gerado em '{arquivo_backup}' (se existia).")
+
+        # 3. Escrever a nova configuração
+        nova_config = "nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n"
+        cmd_aplicar = f"echo '{nova_config}' > {arquivo_alvo}"
+        codigo, stdout, stderr = executar(cliente, cmd_aplicar)
+
+        # 4. Verificar código de retorno para acionar Rollback se necessário
+        if codigo != 0:
+            print(f"  [!] Falha ao aplicar configuração (código {codigo}). Iniciando Rollback...")
+            cmd_rollback = f"mv {arquivo_backup} {arquivo_alvo} 2>/dev/null || rm -f {arquivo_alvo}"
+            executar(cliente, cmd_rollback)
+            print("  [✗] Rollback concluído. Estado original restaurado.")
+            cliente.close()
+            return False
+
+        print(f"  [✓] Configuração aplicada com sucesso em {arquivo_alvo}.")
+        executar(cliente, f"rm -f {arquivo_backup}")
+        cliente.close()
+        return True
+
+    except Exception as e:
+        print(f"  [✗] Erro de conexão/execução em {nome}: {e}")
+        return False
+
 
 def main():
-    dispositivos = carregar_inventario()
-    
-    print("=== INICIANDO CONFIGURAÇÃO EM LOTE ===\n")
-    
-    for dev in dispositivos:
-        nome = dev["nome"]
-        usuario = dev["usuario"]
-        
-        # Cria um arquivo individual para cada usuário/dispositivo em /tmp
-        comandos_para_aplicar = [
-            f"echo 'nameserver 8.8.8.8' >> /tmp/resolv_test_{usuario}.conf",
-            "uptime -p"
-        ]
-        
-        print(f"--- Aplicando configurações em {nome} ({usuario}) ---")
-        try:
-            cliente = conectar(dev)
-            sucesso, cmd_falha, erro, historico = aplicar_configuracao(cliente, comandos_para_aplicar)
-            
-            if sucesso:
-                print(f"  [OK] Todas as configurações foram aplicadas com sucesso em {nome}!")
-            else:
-                print(f"  [ERRO] Falha ao executar '{cmd_falha}' em {nome}: {erro}")
-                print(f"  [ROLLBACK] Revertendo comandos aplicados anteriormente: {historico}")
-                
-            cliente.close()
-        except Exception as e:
-            print(f"  [FALHA DE CONEXÃO] Não foi possível conectar a {nome}: {e}")
-        print()
+    with open("inventario.json", "r", encoding="utf-8") as f:
+        inventario = json.load(f)
 
-    print("=== CONFIGURAÇÃO FINALIZADA ===")
+    sucessos = 0
+    print("=== Iniciando Configuração em Lote com Mecanismo de Rollback ===")
+
+    for dispositivo in inventario:
+        if aplicar_configuracao_com_rollback(dispositivo):
+            sucessos += 1
+
+    print(f"\n[Summary] Concluído: {sucessos}/{len(inventario)} dispositivos processados.")
+
 
 if __name__ == "__main__":
     main()
