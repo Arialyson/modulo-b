@@ -1,6 +1,6 @@
 from conexao import conectar, executar
 
-dispositivo = {"nome": "R1", "host": "172.21.102.94", "porta": 22, "usuario": "r1"}
+dispositivo = {"nome": "R1", "host": "127.0.0.1", "porta": 22, "usuario": "r1"}
 comandos = ["whoami", "hostname", "uptime -p", "comando-inexistente"]
 
 cliente = conectar(dispositivo)
