@@ -6,7 +6,7 @@
 ![OpenSSH](https://img.shields.io/badge/OpenSSH-Server-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Conclu%C3%ADdo%20(11%2F11%20Casos)-success?style=for-the-badge)
 
-> **Projeto Integrador — Gerência de Redes**  
+> **Atividade Prática — Gerência de Redes**  
 > Implementação completa dos **11 estudos de caso** de automação de infraestrutura e gerência de dispositivos via **SSH** e **SFTP**, utilizando **Python 3** e a biblioteca **Paramiko**.
 
 ---
@@ -18,7 +18,7 @@
 - [📂 Estrutura do Repositório](#-estrutura-do-repositório)
 - [🚀 Guia dos Estudos de Caso (01 a 11)](#-guia-dos-estudos-de-caso-01-a-11)
 - [🛡️ Diagrama de Topologia — Bastion Host (Caso 10)](#️-diagrama-de-topologia--bastion-host-caso-10)
-- [🎓 Respostas das Perguntas de Reflexão (Defesa N2)](#-respostas-das-perguntas-de-reflexão-defesa-n2)
+- [📝 Respostas das Perguntas de Reflexão](#-respostas-das-perguntas-de-reflexão)
 - [🔒 Boas Práticas de Segurança Aplicadas](#-boas-práticas-de-segurança-aplicadas)
 
 ---
